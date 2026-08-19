@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generador de red sintética para la gobernanza por grafo de invitaciones (v1).
+Generador de red sintética para la gobernanza por grafo de invitaciones (v1 + v2).
 Uso: python generar_red.py --total 100 --fundadores 5 --semilla 42
 """
 
@@ -16,12 +16,16 @@ from faker import Faker
 DB_CONFIG = {
     "dbname": "gobernanza",
     "user": "postgres",
-    "password": "1234",  # cambia según tu configuración
+    "password": "1234",      # cambia según tu configuración
     "host": "localhost",
     "port": 5432,
 }
 
 fake = Faker("es_ES")
+
+# Enumeraciones para v2 (usamos strings directamente)
+SOCIOECONOMIC_LEVELS = ['bajo', 'medio_bajo', 'medio', 'medio_alto', 'alto']
+BACKGROUND_TYPES = ['laboral', 'educativo', 'judicial', 'referencia_personal', 'otro']
 
 
 def hash_determinista(seed, user_id, context):
@@ -134,8 +138,43 @@ def obtener_hermanos(usuarios_dict, user_id):
     return hermanos
 
 
+# ---------- Funciones nuevas para v2 ----------
+def insertar_perfil_socioeconomico(cur, user_id, fake):
+    """Inserta un perfil socioeconómico aleatorio para el usuario."""
+    level = random.choice(SOCIOECONOMIC_LEVELS)
+    occupation = fake.job() if random.random() < 0.8 else None
+    education = random.choice(['primaria', 'secundaria', 'técnico', 'universitario', 'postgrado', None])
+    income = random.choice(['<300k', '300k-600k', '600k-1M', '1M-2M', '>2M', None])
+    notes = fake.sentence() if random.random() < 0.3 else None
+    cur.execute("""
+        INSERT INTO user_socioeconomic_profile
+        (user_id, socioeconomic_level, occupation, education_level, monthly_income_range, notes, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (user_id, level, occupation, education, income, notes, datetime.now()))
+
+
+def insertar_antecedentes(cur, user_id, fake, ids_existentes, max_por_usuario=3):
+    """Genera entre 0 y max_por_usuario antecedentes para el usuario."""
+    num = random.randint(0, max_por_usuario)
+    for _ in range(num):
+        btype = random.choice(BACKGROUND_TYPES)
+        desc = fake.sentence(nb_words=8)
+        occurred = fake.date_between(start_date='-5y', end_date='today') if random.random() < 0.7 else None
+        verified = random.random() < 0.3
+        verified_by = None
+        verified_at = None
+        if verified and ids_existentes:
+            verified_by = random.choice(ids_existentes)
+            verified_at = datetime.now()
+        cur.execute("""
+            INSERT INTO user_backgrounds
+            (user_id, background_type, description, occurred_at, verified, verified_by, verified_at, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (user_id, btype, desc, occurred, verified, verified_by, verified_at, datetime.now()))
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Generar red sintética para gobernanza v1")
+    parser = argparse.ArgumentParser(description="Generar red sintética para gobernanza v1+v2")
     parser.add_argument("--total", type=int, default=100, help="Número total de miembros")
     parser.add_argument("--fundadores", type=int, default=5, help="Número de fundadores (génesis)")
     parser.add_argument("--semilla", type=int, default=42, help="Semilla para reproducibilidad")
@@ -153,6 +192,8 @@ def main():
         cur.execute("DELETE FROM sibling_assignments;")
         cur.execute("DELETE FROM votes;")
         cur.execute("DELETE FROM invitations;")
+        cur.execute("DELETE FROM user_backgrounds;")
+        cur.execute("DELETE FROM user_socioeconomic_profile;")
         cur.execute("DELETE FROM users;")
         conn.commit()
 
@@ -168,8 +209,11 @@ def main():
     usuarios_ordenados = sorted(usuarios, key=lambda x: (x["profundidad"], x["id"]))
     usuarios_dict = {u["id"]: u for u in usuarios}
 
-    print("Insertando usuarios...")
+    print("Insertando usuarios y sus perfiles v2...")
+    inserted_ids = []  # para usar como verificadores de antecedentes
+
     for u in usuarios_ordenados:
+        # Insertar usuario
         cur.execute(
             """
             INSERT INTO users (id, display_name, inviter_id, principles_accepted_at, status)
@@ -183,8 +227,17 @@ def main():
                 "active",
             ),
         )
+        # Guardar id para posibles verificadores
+        inserted_ids.append(u["id"])
+
+        # Perfil socioeconómico (v2)
+        insertar_perfil_socioeconomico(cur, u["id"], fake)
+
+        # Antecedentes (v2)
+        insertar_antecedentes(cur, u["id"], fake, inserted_ids, max_por_usuario=3)
+
     conn.commit()
-    print(f"{len(usuarios)} usuarios insertados.")
+    print(f"{len(usuarios)} usuarios insertados con sus perfiles y antecedentes.")
 
     print("Calculando y persistiendo hermanos vecinales...")
     semilla_red = args.semilla
