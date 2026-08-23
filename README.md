@@ -72,3 +72,28 @@ Esto permite analizar empíricamente:
 psql -d gobernanza -f v1.sql
 psql -d gobernanza -f v2.sql
 psql -d gobernanza -f v3.sql   # <-- nueva migración
+```
+
+### v4 — Vecinos persistentes balanceados (inter-rama)
+
+Archivo: `v4.sql`
+
+Esta versión implementa el tejido inter-rama con vecinos persistentes asignados al ingreso mediante sorteo balanceado (*round‑robin*). Cada nuevo miembro recibe un vecino de cada otra rama, que votará en todas sus futuras propuestas.
+
+**Cambios en la base de datos:**
+
+- `users.rama_root_id`: cache de la raíz del génesis.
+- `inter_rama_assignments`: asignaciones persistentes entre ramas.
+- `delegation_requests`: solicitudes de reasignación voluntaria.
+
+**Scripts actualizados:**
+
+- `generar_red.py`: asigna automáticamente vecinos inter-rama con balanceo.
+- `simular_actividad.py`: el vecindario de votación incluye ahora los vecinos persistentes (función `obtener_vecindario_expandido`). Si la tabla `inter_rama_assignments` está vacía, cae al vecindario local.
+
+**Uso:**
+
+```bash
+psql -d gobernanza -f v4.sql
+python generar_red.py --total 100 --fundadores 5 --semilla 42
+python simular_actividad.py --num-invitaciones 100 --notas "probando v4"
