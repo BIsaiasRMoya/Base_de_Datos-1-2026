@@ -1,0 +1,385 @@
+* Resultados de la Implementación
+
+** Versión 1: Admisión por vecindario local
+
+Esta sección presenta los datos extraídos tras la simulación de la primera versión del modelo de gobernanza.
+
+*** 1. Estructura de la red
+- *Total de usuarios activos:* 25
+- *Total de fundadores (génesis):* 5
+- *Total de asignaciones de hermanos vecinales:* 6
+
+*** 2. Carga de validación
+Distribución de votos emitidos por los vecindarios locales durante las invitaciones:
+
+| Decisión | Cantidad de Votos |
+|----------+-------------------|
+| SÍ       | 28 |
+| NO       | 6 |
+| Abstención | 6 |
+|----------+-------------------|
+| *Total*  | *40* |
+
+*** 3. Admisiones
+Estadísticas sobre el proceso de invitaciones y alcance de cuórum:
+
+| Estado de Invitación | Cantidad |
+|----------------------+----------|
+| Aprobadas (Cuórum)   | 10 |
+| Caducadas            | 0 |
+|----------------------+----------|
+| *Total Emitidas*     | *10* |
+
+** Versión 2: Tejido inter-rama mediante jurado ad-hoc
+
+Esta sección analiza la integración del jurado inter-rama sorteado determinísticamente para equilibrar las decisiones de admisión entre distintas ramas del árbol.
+
+*** 1. Resumen de Carga e Integración Inter-Rama
+- *Total de votos locales:* 71
+- *Total de votos de jurado inter-rama:* 37
+- *Miembros únicos que actuaron como jurado:* 21
+- *Total de votos registrados en el sistema:* 108
+
+*** 2. Desglose de votos por rol y elección
+Distribución detallada de votos de acuerdo con la procedencia del votante (local vs jurado):
+
+| Rol de Votante | Elección | Cantidad de Votos |
+|----------------+----------+-------------------|
+| local | yes | 51 |
+| local | no | 11 |
+| local | abstain | 9 |
+| jurado | yes | 29 |
+| jurado | no | 7 |
+| jurado | abstain | 1 |
+|----------------+----------+-------------------|
+
+*** 3. Resultado acumulado de admisiones (V2)
+Estado final de las propuestas de admisión procesadas por el vecindario expandido V2:
+
+| Estado de Invitación | Cantidad |
+|----------------------+----------|
+| Aprobadas (Cuórum)   | 19 |
+| Caducadas            | 1 |
+|----------------------+----------|
+| *Total Emitidas*     | *20* |
+
+** Versión 3: Vecinos persistentes inter-rama balanceados y delegación
+
+Esta sección presenta el análisis de la tercera versión, evaluando el impacto de la asignación inter-rama persistente balanceada y el mecanismo de delegación voluntaria de carga.
+
+*** 1. Estructura e Integración de Ramas
+- *Total de ramas (raíces):* 5
+- *Asignaciones inter-rama activas:* 172
+- *Asignaciones inter-rama transferidas/reemplazadas:* 0
+- *Total de relaciones inter-rama creadas:* 172
+
+*** 2. Distribución y Balanceo de Carga
+Métricas relativas a la cantidad de asignaciones inter-rama recibidas por cada usuario activo:
+
+| Métrica | Valor |
+|---------+-------|
+| Carga Mínima | 0 |
+| Carga Máxima | 11 |
+| Carga Promedio | 4.00 |
+|---------+-------|
+
+*** 3. Solicitudes de Delegación Voluntaria
+Estado de las solicitudes de delegación de responsabilidad inter-rama:
+
+| Estado de la Solicitud | Cantidad |
+|------------------------+----------|
+| Aceptadas (Transferidas) | 0 |
+| Rechazadas             | 2 |
+| Pendientes             | 0 |
+|------------------------+----------|
+| *Total Solicitudes*    | *2* |
+
+*** 4. Desglose de votos por rol en V3
+Votos emitidos durante las admisiones V3 categorizados por rol (`local` vs `persistente`):
+
+| Rol de Votante | Elección | Cantidad de Votos |
+|----------------+----------+-------------------|
+| local | yes | 23 |
+| local | no | 6 |
+| local | abstain | 7 |
+| persistente | yes | 23 |
+| persistente | no | 8 |
+| persistente | abstain | 5 |
+|----------------+----------+-------------------|
+
+*** 5. Admisiones en la Versión 3
+Resultado del proceso de cuórum en las admisiones simularas para la V3:
+
+| Estado de Invitación | Cantidad |
+|----------------------+----------|
+| Aprobadas (Cuórum)   | 9 |
+| Caducadas            | 1 |
+|----------------------+----------|
+| *Total Emitidas V3*  | *10* |
+
+** Versión 4: Reciprocidad y Gestión de Inactividad
+
+Esta sección analiza la cuarta versión, enfocada en evitar que la inactividad de miembros bloquee el cuórum de las decisiones y en mantener la reciprocidad en la red mediante el reemplazo de hermanos inactivos.
+
+*** 1. Estado de Actividad de los Miembros
+Distribución general de los usuarios según su actividad reciente (`last_active_at`):
+
+| Estado de Usuario | Cantidad | Porcentaje |
+|-------------------+----------+------------|
+| Activo (`active`)     | 53 | 100.0% |
+| Inactivo (`inactive`) | 0 | 0.0% |
+|-------------------+----------+------------|
+| *Total Miembros*  | *53* | 100.0% |
+
+*** 2. Reemplazo de Hermanos Inactivos
+Asignaciones de hermanos vecinales reconfiguradas tras detectar inactividad prolongada:
+
+- *Asignaciones de hermanos vigentes:* 24
+- *Hermanos reemplazados por inactividad:* 0
+- *Total de registros históricos de hermanos:* 24
+
+*** 3. Admisiones y Cuórum Efectivo en V4
+Resultados de los procesos de admisión simularos en la V4, donde el cuórum se calcula únicamente sobre la base de miembros activos del vecindario:
+
+| Estado de Invitación | Cantidad |
+|----------------------+----------|
+| Aprobadas (Cuórum)   | 10 |
+| Caducadas            | 0 |
+|----------------------+----------|
+| *Total Emitidas V4*  | *10* |
+
+*** 4. Desglose de Votos Emitidos por Rol en V4
+Participación efectiva de los miembros activos desglosada por su rol (`local` vs `persistente`):
+
+| Rol de Votante | Elección | Cantidad de Votos |
+|----------------+----------+-------------------|
+| local | yes | 24 |
+| local | no | 5 |
+| local | abstain | 5 |
+| persistente | yes | 25 |
+| persistente | no | 5 |
+| persistente | abstain | 9 |
+|----------------+----------+-------------------|
+| *Total Votos Emitidos* | | *73* |
+
+** Versión 4: Reciprocidad y Gestión de Inactividad
+
+Esta sección analiza la cuarta versión, enfocada en evitar que la inactividad de miembros bloquee el cuórum de las decisiones y en mantener la reciprocidad en la red mediante el reemplazo de hermanos inactivos.
+
+*** 1. Estado de Actividad de los Miembros
+Distribución general de los usuarios según su actividad reciente (`last_active_at`):
+
+| Estado de Usuario | Cantidad | Porcentaje |
+|-------------------+----------+------------|
+| Activo (`active`)     | 61 | 100.0% |
+| Inactivo (`inactive`) | 0 | 0.0% |
+|-------------------+----------+------------|
+| *Total Miembros*  | *61* | 100.0% |
+
+*** 2. Reemplazo de Hermanos Inactivos
+Asignaciones de hermanos vecinales reconfiguradas tras detectar inactividad prolongada:
+
+- *Asignaciones de hermanos vigentes:* 31
+- *Hermanos reemplazados por inactividad:* 0
+- *Total de registros históricos de hermanos:* 31
+
+*** 3. Admisiones y Cuórum Efectivo en V4
+Resultados de los procesos de admisión simularos en la V4, donde el cuórum se calcula únicamente sobre la base de miembros activos del vecindario:
+
+| Estado de Invitación | Cantidad |
+|----------------------+----------|
+| Aprobadas (Cuórum)   | 18 |
+| Caducadas            | 2 |
+|----------------------+----------|
+| *Total Emitidas V4*  | *20* |
+
+*** 4. Desglose de Votos Emitidos por Rol en V4
+Participación efectiva de los miembros activos desglosada por su rol (`local` vs `persistente`):
+
+| Rol de Votante | Elección | Cantidad de Votos |
+|----------------+----------+-------------------|
+| local | yes | 40 |
+| local | no | 8 |
+| local | abstain | 16 |
+| persistente | yes | 50 |
+| persistente | no | 15 |
+| persistente | abstain | 14 |
+|----------------+----------+-------------------|
+| *Total Votos Emitidos* | | *143* |
+
+** Versión 5: Sanciones, Advertencias y Expulsiones
+
+Esta sección presenta el análisis del sistema disciplinario, la selección determinista de jurados, las recusaciones y las suspensiones cautelares.
+
+*** 1. Impacto Disciplinario en Usuarios
+- *Suspendidos por Cautelar (`suspended_cautelar`):* 1
+- *Suspendidos por Sanción (`suspended_sanction`):* 0
+- *Expulsados (`expelled`):* 0
+
+*** 2. Estado de Procesos Disciplinarios
+Distribución de los procesos en sus distintas etapas del ciclo disciplinario:
+
+| Estado del Proceso | Cantidad |
+|--------------------+----------|
+| resolved_archived | 1 |
+|--------------------+----------|
+| *Total Procesos*   | *1* |
+
+*** 3. Participación y Recusaciones en Jurados
+Métricas sobre jurados asignados mediante hash determinista y recusaciones registradas:
+
+| Métrica | Cantidad |
+|---------+----------|
+| Registros de jurados asignados | 14 |
+| Jurados recusados | 0 |
+|---------+----------|
+
+*** 4. Desglose de Decisiones Emitidas por Jurados
+Frecuencia de resoluciones emitidas por los miembros del jurado (`archive`, `warning`, `suspension`, `expulsion`):
+
+| Decisión del Jurado | Cantidad de Votos |
+|--------------------+-------------------|
+| expulsion | 8 |
+| archive | 4 |
+| suspension | 2 |
+|--------------------+-------------------|
+
+*** 5. Suspensiones Cautelares
+Registro de suspensiones preventivas solicitadas y ratificadas por la cadena de invitación o cuentas génesis:
+
+- *Total de cautelares registradas:* 1
+- *Cautelares vigentes:* 1
+- *Cautelares levantadas o vencidas:* 0
+
+** Versión 6: Capa Técnica, Custodia Shamir y Firma de Acciones
+
+Esta sección presenta el análisis de la capa técnica, incluyendo la vigencia y revocación de mandatos, la distribución de fragmentos mediante Shamir Secret Sharing y la auditoría criptográfica de acciones.
+
+*** 1. Estado de Mandatos Técnicos
+- *Total de mandatos registrados:* 1
+- *Mandatos vigentes:* 0
+- *Mandatos revocados por cuórum:* 1
+
+*** 2. Custodia Distribuida de Claves (Shamir Secret Sharing)
+Métricas sobre metadatos de fragmentos (`key_shards`) asignados a custodios activos:
+
+| Métrica | Valor |
+|---------+-------|
+| Total de fragmentos (shards) en base de datos | 5 |
+| Custodios únicos asignados | 5 |
+| Umbral promedio de reconstrucción (k) | 3.00 |
+| Total promedio de fragmentos generados (n) | 5.00 |
+|---------+-------|
+
+*** 3. Log de Acciones Técnicas Firmadas
+Desglose de acciones administrativas ejecutadas y verificadas con firmas criptográficas Ed25519:
+
+| Tipo de Acción Técnica | Cantidad de Registros |
+|------------------------+-----------------------|
+| database_backup | 1 |
+| configuration_update | 1 |
+| security_patch | 1 |
+|------------------------+-----------------------|
+| *Total Acciones Firmadas* | *3* |
+| *Ejecutores Únicos con Clave Pública* | *1* |
+
+*** 4. Cuórum de Revocación de la Red Activa
+Parámetros para la revocación técnica por supermayoría calificada:
+
+- *Miembros activos en la red:* 60
+- *Cuórum de 2/3 requerido para revocación:* 40
+
+** Versión 7: Auto-gobernanza y Modificación Versionada del Reglamento
+
+Esta sección analiza la evolución del reglamento mediante propuestas de modificación, votación directa del electorado activo y control de inmutabilidad histórica.
+
+*** 1. Estado del Reglamento y Versionado de Reglas
+- *Total de versiones históricas registradas:* 5
+- *Reglas activas/vigentes:* 4
+- *Versiones cerradas/archivadas:* 1
+
+| Clave de Regla (rule_key) | Versión Máxima Actual | Total Versiones Registradas |
+|---------------------------+------------------------+-----------------------------|
+| admission_quorum | v1 | 1 |
+| inactivity_threshold | v2 | 2 |
+| rule_change_quorum | v1 | 1 |
+| technical_revocation | v1 | 1 |
+|---------------------------+------------------------+-----------------------------|
+
+*** 2. Propuestas de Modificación Reglamentaria (`rule_proposals`)
+- *Total de propuestas creadas:* 2
+- *Proponentes únicos:* 2
+- *Duración promedio de ventana de discusión:* 14.00 días
+
+| Estado de la Propuesta | Cantidad |
+|------------------------+----------|
+| open | 0 |
+| approved | 1 |
+| rejected | 1 |
+| expired | 0 |
+|------------------------+----------|
+
+*** 3. Participación Electora y Votos (`rule_votes`)
+- *Total de votos registrados:* 120
+- *Votantes únicos participantes:* 60
+
+| Opción de Voto (choice) | Cantidad de Votos |
+|-------------------------+-------------------|
+| no | 21 |
+| yes | 79 |
+| abstain | 20 |
+|-------------------------+-------------------|
+
+*** 4. Parámetros de Cuórum para Auto-gobernanza
+Cálculo del umbral de aprobación (2/3 de la red activa) aplicado sobre cada propuesta reglamentaria:
+
+- *Miembros activos en la red:* 60
+- *Cuórum de 2/3 requerido para aprobar un cambio:* 40
+
+** Versión 7: Auto-gobernanza y Modificación Versionada del Reglamento
+
+Esta sección analiza la evolución del reglamento mediante propuestas de modificación, votación directa del electorado activo y control de inmutabilidad histórica.
+
+*** 1. Estado del Reglamento y Versionado de Reglas
+- *Total de versiones históricas registradas:* 5
+- *Reglas activas/vigentes:* 4
+- *Versiones cerradas/archivadas:* 1
+
+| Clave de Regla (rule_key) | Versión Máxima Actual | Total Versiones Registradas |
+|---------------------------+------------------------+-----------------------------|
+| admission_quorum | v1 | 1 |
+| inactivity_threshold | v2 | 2 |
+| rule_change_quorum | v1 | 1 |
+| technical_revocation | v1 | 1 |
+|---------------------------+------------------------+-----------------------------|
+
+*** 2. Propuestas de Modificación Reglamentaria (`rule_proposals`)
+- *Total de propuestas creadas:* 1
+- *Proponentes únicos:* 1
+- *Duración promedio de ventana de discusión:* 14.00 días
+
+| Estado de la Propuesta | Cantidad |
+|------------------------+----------|
+| open | 0 |
+| approved | 1 |
+| rejected | 0 |
+| expired | 0 |
+|------------------------+----------|
+
+*** 3. Participación Electora y Votos (`rule_votes`)
+- *Total de votos registrados:* 500
+- *Votantes únicos participantes:* 500
+
+| Opción de Voto (choice) | Cantidad de Votos |
+|-------------------------+-------------------|
+| no | 83 |
+| yes | 334 |
+| abstain | 83 |
+|-------------------------+-------------------|
+
+*** 4. Parámetros de Cuórum para Auto-gobernanza
+Cálculo del umbral de aprobación (2/3 de la red activa) aplicado sobre cada propuesta reglamentaria:
+
+- *Miembros activos en la red:* 500
+- *Cuórum de 2/3 requerido para aprobar un cambio:* 334
+
