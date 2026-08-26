@@ -1,43 +1,167 @@
 -- ============================================================
--- v4 — Vecinos persistentes balanceados (inter-rama)
--- Migración ADITIVA sobre v1+v2+v3.
--- Agrega rama_root_id a users y tablas de asignaciones persistentes.
+-- v4 — Reciprocidad e inactividad
+-- ============================================================
+--
+-- Agrega:
+--   - last_active_at en users
+--   - estado inactive
+--   - actualización automática de actividad
+--   - bloqueo de propuestas para usuarios inactivos
+--
+-- No crea nuevas tablas.
 -- ============================================================
 
--- 1. Añadir columna rama_root_id a users (cache de la raíz del génesis)
-ALTER TABLE users ADD COLUMN rama_root_id UUID REFERENCES users(id);
 
-COMMENT ON COLUMN users.rama_root_id IS 'Raíz del génesis (miembro fundador) de la rama a la que pertenece este usuario. Se calcula al ingresar y se cachea.';
+-- ------------------------------------------------------------
+-- 1. Nuevo estado de usuario
+-- ------------------------------------------------------------
 
--- 2. Tabla de asignaciones persistentes inter-rama
-CREATE TABLE inter_rama_assignments (
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    neighbor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    other_rama_root_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    replaced_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    replaced_at TIMESTAMPTZ,
-    PRIMARY KEY (user_id, neighbor_id)
+ALTER TYPE member_status
+ADD VALUE 'inactive';
+
+
+-- ------------------------------------------------------------
+-- 2. Última actividad
+-- ------------------------------------------------------------
+
+ALTER TABLE users
+ADD COLUMN last_active_at TIMESTAMPTZ;
+
+
+-- ------------------------------------------------------------
+-- 3. Reconstruir actividad histórica
+-- ------------------------------------------------------------
+--
+-- Para miembros existentes usamos la acción significativa
+-- más reciente entre:
+--
+--   - ingreso a la red
+--   - voto emitido
+--   - propuesta iniciada
+--
+-- La propuesta indica que la actividad puede inferirse
+-- desde votes e invitations.
+-- ------------------------------------------------------------
+
+UPDATE users u
+SET last_active_at = GREATEST(
+
+    u.principles_accepted_at,
+
+    COALESCE(
+        (
+            SELECT MAX(v.cast_at)
+            FROM votes v
+            WHERE v.voter_id = u.id
+        ),
+        u.principles_accepted_at
+    ),
+
+    COALESCE(
+        (
+            SELECT MAX(i.opened_at)
+            FROM invitations i
+            WHERE i.proposer_id = u.id
+        ),
+        u.principles_accepted_at
+    )
 );
 
-COMMENT ON TABLE inter_rama_assignments IS 'Vecinos persistentes de otras ramas asignados al momento del ingreso.';
-COMMENT ON COLUMN inter_rama_assignments.other_rama_root_id IS 'Raíz de la rama del vecino (para saber de qué rama proviene).';
 
--- 3. Tabla de solicitudes de delegación (para reasignar carga)
-CREATE TABLE delegation_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    delegator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assignment_id UUID NOT NULL,  -- referencia a inter_rama_assignments (no FK directa por simplicidad)
-    delegate_to_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    accepted BOOLEAN DEFAULT FALSE,
-    decided_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+ALTER TABLE users
+ALTER COLUMN last_active_at SET NOT NULL;
 
-COMMENT ON TABLE delegation_requests IS 'Solicitudes para transferir una asignación inter-rama a otra persona.';
 
--- Índices para consultas comunes
-CREATE INDEX idx_inter_rama_assignments_user_id ON inter_rama_assignments(user_id);
-CREATE INDEX idx_inter_rama_assignments_neighbor_id ON inter_rama_assignments(neighbor_id);
-CREATE INDEX idx_inter_rama_assignments_rama_root ON inter_rama_assignments(other_rama_root_id);
-CREATE INDEX idx_delegation_requests_delegator ON delegation_requests(delegator_id);
+-- ------------------------------------------------------------
+-- 4. Un voto cuenta como actividad
+-- ------------------------------------------------------------
+--
+-- Además, votar reactiva inmediatamente
+-- a una persona inactiva.
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION actualizar_actividad_voto()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    UPDATE users
+    SET
+        last_active_at = GREATEST(
+            last_active_at,
+            NEW.cast_at
+        ),
+        status = 'active'
+    WHERE id = NEW.voter_id;
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_actualizar_actividad_voto
+AFTER INSERT ON votes
+FOR EACH ROW
+EXECUTE FUNCTION actualizar_actividad_voto();
+
+
+-- ------------------------------------------------------------
+-- 5. Proponer una admisión también cuenta como actividad
+-- ------------------------------------------------------------
+--
+-- Un usuario inactive no puede realizar propuestas
+-- hasta reactivarse.
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION validar_propuesta_y_actividad()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    estado member_status;
+BEGIN
+
+    SELECT status
+    INTO estado
+    FROM users
+    WHERE id = NEW.proposer_id;
+
+    IF estado IS NULL THEN
+
+        RAISE EXCEPTION
+        'El proponente no existe.';
+
+    END IF;
+
+
+    IF estado <> 'active' THEN
+
+        RAISE EXCEPTION
+        'El usuario está inactivo y no puede proponer admisiones.';
+
+    END IF;
+
+
+    UPDATE users
+    SET last_active_at = GREATEST(
+        last_active_at,
+        NEW.opened_at
+    )
+    WHERE id = NEW.proposer_id;
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_validar_propuesta_actividad
+BEFORE INSERT ON invitations
+FOR EACH ROW
+EXECUTE FUNCTION validar_propuesta_y_actividad();
+
+
+COMMENT ON COLUMN users.last_active_at IS
+'Fecha UTC de la última acción significativa del miembro.';
