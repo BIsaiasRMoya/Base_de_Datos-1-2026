@@ -17,83 +17,89 @@ persistencia de hermanos vecinales sorteados.
 
 Tablas: `users`, `invitations`, `votes`, `sibling_assignments`.
 
-### v2 — Perfil extendido de usuarios (nivel socioeconómico y antecedentes)
+### v2 — Tejido inter-rama mediante jurado ad-hoc
 Archivo: `v2.sql`
 
-Agrega características adicionales a los usuarios sin modificar la tabla
-`users` original:
+Agrega el origen del voto (`local` o `jurado`) en la tabla `votes`,
+permitiendo que miembros de otras ramas participen en las votaciones
+de admisión de forma determinista.
 
-- **`user_socioeconomic_profile`** (relación 1:1 con `users`): nivel
-  socioeconómico, ocupación, nivel educativo, rango de ingreso.
-- **`user_backgrounds`** (relación 1:N con `users`): antecedentes por
-  usuario (laboral, educativo, judicial, referencias personales, etc.),
-  con soporte de verificación por otro miembro de la red.
+### v3 — Vecinos persistentes inter-rama balanceados
+Archivo: `v3.sql`
 
-Nuevos tipos: `socioeconomic_level`, `background_type`.
+Introduce la asignación persistente de vecinos inter‑rama con balanceo de
+carga (`round‑robin`). Cada nuevo miembro recibe un vecino de cada otra
+rama, que votará en todas sus futuras propuestas. Además, se añade el
+mecanismo de delegación voluntaria de estas asignaciones.
+
+Tablas nuevas: `inter_rama_assignments`, `delegation_requests`.
+Columna en `users`: `rama_root_id`.
+
+### v4 — Reciprocidad e inactividad
+Archivo: `v4.sql`
+
+Gestiona la inactividad de los miembros para que no bloqueen el cuórum.
+Se añade el estado `inactive` y el campo `last_active_at`, con triggers
+que actualizan la actividad al votar o proponer. Los vecinos inactivos
+pueden ser reemplazados.
+
+### v5 — Sanciones, advertencias y expulsiones
+Archivo: `v5.sql`
+
+Implementa el sistema disciplinario: procesos, descargos, jurados
+sorteados determinísticamente, decisiones (archivo, amonestación,
+suspensión, expulsión) y suspensiones cautelares (máximo 30 días).
+
+Nuevos tipos: `disciplinary_status`, `disciplinary_decision`.
+Tablas: `disciplinary_processes`, `defense_responses`, `juries`,
+`jury_decisions`, `cautelary_suspensions`.
+
+### v6 — Capa técnica
+Archivo: `v6.sql`
+
+Soporta mandatos técnicos electos y revocables, custodia distribuida
+de claves mediante Shamir Secret Sharing (solo metadatos, el secreto
+no se almacena en la BD) y un registro público firmado de acciones
+técnicas (Ed25519).
+
+Tablas: `technical_roles`, `key_shards`, `technical_action_log`.
+
+### v7 — Auto‑gobernanza
+Archivo: `v7.sql`
+
+Permite modificar el reglamento mediante propuestas versionadas.
+Cada regla tiene un historial inmutable; las propuestas requieren
+votación de toda la red activa con cuórum de 2/3.
+
+Tablas: `rules`, `rule_proposals`, `rule_votes`.
+Triggers que impiden la modificación o borrado de versiones históricas.
+
+---
+
+## Resultados de simulación por versión
+
+A continuación se resumen los principales resultados obtenidos al ejecutar
+las simulaciones con cada versión (extraídos de `documentacion.org`).
+
+| Versión | Miembros activos | Invitaciones aprobadas | Votos totales | Observaciones clave |
+|---------|------------------|------------------------|---------------|----------------------|
+| **v1**  | 25               | 10                     | 40            | Alta tasa de aprobación (100% de las invitaciones alcanzaron cuórum). |
+| **v2**  | (no especificado) | 19                     | 108           | Integración de jurado inter‑rama: 37 votos de jurado; aprobación estable. |
+| **v3**  | (no especificado) | 9                      | 72            | Asignaciones inter‑rama balanceadas (promedio 4 por usuario). 2 solicitudes de delegación rechazadas. |
+| **v4**  | 61               | 18                     | 143           | Sin inactivos; reemplazo de hermanos no necesario. Votos de persistentes ligeramente superiores a locales. |
+| **v5**  | 61 (activos)     | —                      | —             | 1 proceso disciplinario archivado; 14 jurados asignados; decisión mayoritaria de expulsión (8 de 14). 1 suspensión cautelar vigente. |
+| **v6**  | 60               | —                      | —             | 1 mandato técnico revocado; 5 fragmentos Shamir distribuidos; 3 acciones técnicas firmadas. Cuórum de revocación = 40. |
+| **v7**  | 500              | —                      | 500           | 1 propuesta de cambio reglamentario aprobada con 334 votos a favor (justo el cuórum de 2/3). |
+
+> **Nota:** Los resultados corresponden a simulaciones sintéticas y sirven para validar el comportamiento de cada capa del modelo.
 
 ## Cómo aplicar las migraciones
 
 ```bash
 psql -d gobernanza -f v1.sql
 psql -d gobernanza -f v2.sql
-```
-
-## Población de datos para v2 (Perfil extendido)
-
-La versión 2 introduce las tablas `user_socioeconomic_profile` y `user_backgrounds`. Para generar datos sintéticos en estas tablas, tienes dos opciones:
-
-1. **Usar `generar_red.py` modificado**: el script ya incluye la inserción de perfiles y antecedentes para cada usuario creado (ver sección de código). Ejecútalo con los parámetros deseados.
-
-2. **Ejecutar `poblar_v2.py`** después de generar la red: este script recorre todos los usuarios activos y les asigna perfiles y antecedentes aleatorios.
-
-```bash
-python generar_red.py --total 100 --fundadores 5 --semilla 42
-python poblar_v2.py   # si usas el script separado
-```
-
-## Evolución del modelo de datos
-
-Cada versión es una migración aditiva.
-
-### v3 — Persistencia del perfil del candidato en la invitación (v3.sql)
-
-Agrega columnas a `invitations` para registrar el perfil simulado del candidato:
-
-- `candidate_socioeconomic_level TEXT`: nivel socioeconómico.
-- `candidate_backgrounds TEXT[]`: lista de antecedentes (ej. `{"judicial", "laboral"}`).
-
-Esto permite analizar empíricamente:
-
-- ¿Los antecedentes judiciales afectan la tasa de aprobación?
-- ¿Existe homofilia socioeconómica en los votos?
-- ¿Cómo se distribuye el éxito de admisión por perfil?
-
-```bash
-psql -d gobernanza -f v1.sql
-psql -d gobernanza -f v2.sql
-psql -d gobernanza -f v3.sql   # <-- nueva migración
-```
-
-### v4 — Vecinos persistentes balanceados (inter-rama)
-
-Archivo: `v4.sql`
-
-Esta versión implementa el tejido inter-rama con vecinos persistentes asignados al ingreso mediante sorteo balanceado (*round‑robin*). Cada nuevo miembro recibe un vecino de cada otra rama, que votará en todas sus futuras propuestas.
-
-**Cambios en la base de datos:**
-
-- `users.rama_root_id`: cache de la raíz del génesis.
-- `inter_rama_assignments`: asignaciones persistentes entre ramas.
-- `delegation_requests`: solicitudes de reasignación voluntaria.
-
-**Scripts actualizados:**
-
-- `generar_red.py`: asigna automáticamente vecinos inter-rama con balanceo.
-- `simular_actividad.py`: el vecindario de votación incluye ahora los vecinos persistentes (función `obtener_vecindario_expandido`). Si la tabla `inter_rama_assignments` está vacía, cae al vecindario local.
-
-**Uso:**
-
-```bash
+psql -d gobernanza -f v3.sql
 psql -d gobernanza -f v4.sql
-python generar_red.py --total 100 --fundadores 5 --semilla 42
-python simular_actividad.py --num-invitaciones 100 --notas "probando v4"
+psql -d gobernanza -f v5.sql
+psql -d gobernanza -f v6.sql
+psql -d gobernanza -f v7.sql
